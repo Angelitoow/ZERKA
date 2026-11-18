@@ -75,6 +75,19 @@ export async function guardarPublicacionDB(datos: NuevaPublicacion & { id?: numb
           },
         });
 
+        await tx.imagen.deleteMany({ where: { fkidpublicacion_imagen: pubId } });
+        for (const img of datos.imagenes ?? []) {
+          const urlFinal = img.startsWith("blob:") || img.startsWith("data:") ? "" : img.slice(0, 60);
+          if (urlFinal) {
+            await tx.imagen.create({
+              data: {
+                fkidpublicacion_imagen: pubId,
+                url_imagen: urlFinal,
+              },
+            });
+          }
+        }
+
         if (datos.tipo === "Producto") {
           await tx.producto.upsert({
             where: { pfkidpublicacion_producto: pubId },

@@ -22,17 +22,23 @@ const EMOJI_TIPO: Record<Tipo, string> = {
   Solicitud: "📣",
 };
 
-/** Sube archivos a MongoDB vía /api/imagenes y devuelve los ObjectIds */
-async function subirImagenesMongo(archivos: File[]): Promise<string[]> {
-  if (archivos.length === 0) return [];
-  const formData = new FormData();
-  for (const file of archivos) {
+type ImagenPendiente = { file: File; preview: string };
+
+/** Sube cada archivo por separado para no superar el límite de tamaño por petición. */
+async function subirImagenesMongo(imagenes: ImagenPendiente[]): Promise<string[]> {
+  const ids: string[] = [];
+  for (const { file } of imagenes) {
+    const formData = new FormData();
     formData.append("file", file);
+    const res = await fetch("/api/imagenes", { method: "POST", body: formData });
+    if (!res.ok) throw new Error("Error al subir imágenes");
+    const data = await res.json();
+    if (!Array.isArray(data.ids) || typeof data.ids[0] !== "string") {
+      throw new Error("El servidor no devolvió el identificador de la imagen");
+    }
+    ids.push(data.ids[0]);
   }
-  const res = await fetch("/api/imagenes", { method: "POST", body: formData });
-  if (!res.ok) throw new Error("Error al subir imágenes");
-  const data = await res.json();
-  return data.ids as string[];
+  return ids;
 }
 
 /** Selector de imágenes: las vistas previas son URLs locales (blob:) que solo existen durante la sesión. */
@@ -43,14 +49,14 @@ function ImagenesInput({
 }: {
   imagenes: string[];
   onChange: (i: string[]) => void;
-  onFilesChange: (files: File[]) => void;
+  onFilesChange: (imagenes: ImagenPendiente[]) => void;
 }) {
   const [error, setError] = useState("");
-  const pendingFiles = useRef<File[]>([]);
+  const pendingImages = useRef<ImagenPendiente[]>([]);
 
   function agregar(files: FileList | null) {
     const errores: string[] = [];
-    const nuevas: string[] = [];
+    const candidatas: File[] = [];
 
     Array.from(files ?? []).forEach((f) => {
       if (!/^image\/(jpeg|png|webp)$/.test(f.type)) {
@@ -61,26 +67,29 @@ function ImagenesInput({
         errores.push(`«${f.name}» supera ${MAX_MB} MB.`);
         return;
       }
-      const url = URL.createObjectURL(f);
-      nuevas.push(url);
-      pendingFiles.current.push(f);
+      candidatas.push(f);
     });
 
-    if (imagenes.length + nuevas.length > MAX_IMAGENES) {
+    const disponibles = MAX_IMAGENES - imagenes.length;
+    if (candidatas.length > disponibles) {
       errores.push(`Puedes subir máximo ${MAX_IMAGENES} imágenes.`);
     }
 
-    const final = [...imagenes, ...nuevas].slice(0, MAX_IMAGENES);
-    onChange(final);
-    onFilesChange([...pendingFiles.current]);
+    const nuevas = candidatas.slice(0, disponibles).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    pendingImages.current.push(...nuevas);
+    onChange([...imagenes, ...nuevas.map((imagen) => imagen.preview)]);
+    onFilesChange([...pendingImages.current]);
     setError(errores.join(" "));
   }
 
   function quitar(src: string) {
-    const idx = imagenes.indexOf(src);
-    if (idx >= 0 && idx < pendingFiles.current.length) {
-      pendingFiles.current.splice(idx, 1);
-      onFilesChange([...pendingFiles.current]);
+    const idx = pendingImages.current.findIndex((imagen) => imagen.preview === src);
+    if (idx >= 0) {
+      pendingImages.current.splice(idx, 1);
+      onFilesChange([...pendingImages.current]);
     }
     onChange(imagenes.filter((x) => x !== src));
   }
@@ -151,7 +160,7 @@ export default function PublicacionForm({ existente }: { existente?: Publicacion
   const router = useRouter();
   const { yo, guardarPublicacion, confirmar, notificar } = useDemo();
 
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingImages, setPendingImages] = useState<ImagenPendiente[]>([]);
   const [subiendo, setSubiendo] = useState(false);
 
   const [f, setF] = useState({
@@ -196,10 +205,12 @@ export default function PublicacionForm({ existente }: { existente?: Publicacion
 
       // 1. Subir imágenes nuevas a MongoDB
       let imagenesFinales: string[] = [];
-      if (pendingFiles.length > 0) {
-        const mongoIds = await subirImagenesMongo(pendingFiles);
-        // Cada ID de Mongo se guarda como "/api/imagenes/<id>" en PostgreSQL (cabe en VARCHAR(60))
-        imagenesFinales = mongoIds.map((id) => `/api/imagenes/${id}`);
+      if (pendingImages.length > 0) {
+        const mongoIds = await subirImagenesMongo(pendingImages);
+        const urlsNuevas = new Map(
+          pendingImages.map((imagen, index) => [imagen.preview, `/api/imagenes/${mongoIds[index]}`])
+        );
+        imagenesFinales = f.imagenes.map((src) => urlsNuevas.get(src) ?? src);
       }
 
       // Si no hay imágenes nuevas, usar las existentes o el placeholder
@@ -311,7 +322,7 @@ export default function PublicacionForm({ existente }: { existente?: Publicacion
         </div>
       </fieldset>
 
-      <ImagenesInput imagenes={f.imagenes} onChange={(imagenes) => setF({ ...f, imagenes })} onFilesChange={setPendingFiles} />
+      <ImagenesInput imagenes={f.imagenes} onChange={(imagenes) => setF({ ...f, imagenes })} onFilesChange={setPendingImages} />
 
       <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-5 sm:flex-row sm:justify-end">
         <button type="button" onClick={() => router.back()} className="btn btn-secundario">Cancelar</button>
