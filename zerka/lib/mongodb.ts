@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI as string;
 
 if (!MONGODB_URI) {
   throw new Error('Por favor define la variable de entorno MONGODB_URI');
@@ -27,4 +27,3 @@ export async function dbConnect() {
   cached.conn = await cached.promise;
   return cached.conn;
 }
-
