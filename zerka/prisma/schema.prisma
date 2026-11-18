@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model barrio {
+  pkid_barrio       Int           @id(map: "pk_barrio") @default(autoincrement())
+  fkidciudad_barrio Int
+  nombre_barrio     String        @db.VarChar(40)
+  ciudad            ciudad        @relation(fields: [fkidciudad_barrio], references: [pkid_ciudad], onDelete: NoAction, onUpdate: NoAction, map: "fkbarrio_ciudad")
+  publicacion       publicacion[]
+  usuario           usuario[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model calificacion {
+  pkid_calificacion                                                 Int      @id(map: "pk_calificacion") @default(autoincrement())
+  fkidusuariocalificador_calificacion                               Int
+  fkidusuariocalificado_calificacion                                Int
+  fecha_calificacion                                                DateTime @default(now()) @db.Timestamp(6)
+  puntuacion_calificacion                                           Int      @db.SmallInt
+  comentario_calificacion                                           String   @db.VarChar(100)
+  usuario_calificacion_fkidusuariocalificado_calificacionTousuario  usuario  @relation("calificacion_fkidusuariocalificado_calificacionTousuario", fields: [fkidusuariocalificado_calificacion], references: [pkid_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fkcalificacion_usuariocalificado")
+  usuario_calificacion_fkidusuariocalificador_calificacionTousuario usuario  @relation("calificacion_fkidusuariocalificador_calificacionTousuario", fields: [fkidusuariocalificador_calificacion], references: [pkid_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fkcalificacion_usuariocalificador")
+}
+
+model categoria {
+  pkid_categoria        Int            @id(map: "pk_categoria") @default(autoincrement())
+  nombre_categoria      String         @db.VarChar(40)
+  descripcion_categoria String
+  publicacion           publicacion[]
+  tipoproducto          tipoproducto[]
+}
+
+model ciudad {
+  pkid_ciudad   Int      @id(map: "pk_ciudad") @default(autoincrement())
+  nombre_ciudad String   @db.VarChar(30)
+  barrio        barrio[]
+}
+
+model estadopublicacion {
+  pkid_estadopublicacion Int           @id(map: "pk_estadopublicacion") @default(autoincrement())
+  tipo_estadopublicacion String        @db.VarChar(30)
+  publicacion            publicacion[]
+}
+
+model estadoreporte {
+  pkid_estadoreporte Int    @id(map: "pk_estadoreporte") @default(autoincrement())
+  tipo_estadoreporte String @db.VarChar(30)
+}
+
+model genero {
+  pkid_genero Int       @id(map: "pk_genero") @default(autoincrement())
+  tipo_genero String    @db.VarChar(20)
+  usuario     usuario[]
+}
+
+model imagen {
+  pkid_imagen            Int         @id(map: "pk_imagen") @default(autoincrement())
+  fkidpublicacion_imagen Int
+  url_imagen             String      @db.VarChar(60)
+  publicacion            publicacion @relation(fields: [fkidpublicacion_imagen], references: [pkid_publicacion], onDelete: NoAction, onUpdate: NoAction, map: "fkimagen_publicacion")
+}
+
+model interes {
+  pfkidusuario_interes     Int
+  pfkidpublicacion_interes Int
+  fecha_interes            DateTime    @default(now()) @db.Timestamp(6)
+  publicacion              publicacion @relation(fields: [pfkidpublicacion_interes], references: [pkid_publicacion], onDelete: NoAction, onUpdate: NoAction, map: "fkinteres_publicacion")
+  usuario                  usuario     @relation(fields: [pfkidusuario_interes], references: [pkid_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fkinteres_usuario")
+
+  @@id([pfkidusuario_interes, pfkidpublicacion_interes], map: "pfkusuario_interes")
+}
+
+model modalidadservicio {
+  pkid_modalidadservicio Int        @id(map: "pk_modalidadservicio") @default(autoincrement())
+  tipo_modalidadservicio String     @db.VarChar(30)
+  servicio               servicio[]
+}
+
+model motivoreporte {
+  pkid_motivoreporte Int       @id(map: "pk_motivoreporte") @default(autoincrement())
+  tipo_motivoreporte String    @db.VarChar(30)
+  reporte            reporte[]
+}
+
+model producto {
+  pfkidpublicacion_producto Int         @id(map: "pfk_producto")
+  precio_producto           Decimal     @db.Decimal(10, 2)
+  publicacion               publicacion @relation(fields: [pfkidpublicacion_producto], references: [pkid_publicacion], onDelete: NoAction, onUpdate: NoAction, map: "fkproducto_publicacion")
+}
+
+model publicacion {
+  pkid_publicacion                    Int                 @id(map: "pk_publicacion") @default(autoincrement())
+  fkidusuario_publicacion             Int
+  fkidcategoria_publicacion           Int
+  fkidbarrio_publicacion              Int
+  fkidvisibilidadcontacto_publicacion Int
+  fkestadopublicacion_publicacion     Int
+  titulo_publicacion                  String              @db.VarChar(70)
+  descripcion_publicacion             String
+  fecha_publicacion                   DateTime            @default(now()) @db.Timestamp(6)
+  imagen                              imagen[]
+  interes                             interes[]
+  producto                            producto?
+  barrio                              barrio              @relation(fields: [fkidbarrio_publicacion], references: [pkid_barrio], onDelete: NoAction, onUpdate: NoAction, map: "fkpublicacion_barrio")
+  categoria                           categoria           @relation(fields: [fkidcategoria_publicacion], references: [pkid_categoria], onDelete: NoAction, onUpdate: NoAction, map: "fkpublicacion_categoria")
+  estadopublicacion                   estadopublicacion   @relation(fields: [fkestadopublicacion_publicacion], references: [pkid_estadopublicacion], onDelete: NoAction, onUpdate: NoAction, map: "fkpublicacion_estadopublicacion")
+  usuario                             usuario             @relation(fields: [fkidusuario_publicacion], references: [pkid_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fkpublicacion_usuario")
+  visibilidadcontacto                 visibilidadcontacto @relation(fields: [fkidvisibilidadcontacto_publicacion], references: [pkid_visibilidadcontacto], onDelete: NoAction, onUpdate: NoAction, map: "fkpublicacion_visibilidadcontacto")
+  reporte                             reporte[]
+  servicio                            servicio?
+  solicitud                           solicitud?
+  trueque                             trueque?
+
+  @@index([fecha_publicacion], map: "idx_fecha_publicacion")
+  @@index([titulo_publicacion], map: "idx_titulo_publicacion")
+}
+
+model reporte {
+  pkid_reporte              Int           @id(map: "pk_reporte") @default(autoincrement())
+  fkidusuario_reporte       Int
+  fkidpublicacion_reporte   Int
+  fkidmotivoreporte_reporte Int
+  descripcion_reporte       String
+  fecha_reporte             DateTime      @default(now()) @db.Timestamp(6)
+  motivoreporte             motivoreporte @relation(fields: [fkidmotivoreporte_reporte], references: [pkid_motivoreporte], onDelete: NoAction, onUpdate: NoAction, map: "fkreporte_motivoreporte")
+  publicacion               publicacion   @relation(fields: [fkidpublicacion_reporte], references: [pkid_publicacion], onDelete: NoAction, onUpdate: NoAction, map: "fkreporte_publicacion")
+  usuario                   usuario       @relation(fields: [fkidusuario_reporte], references: [pkid_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fkreporte_usuario")
+}
+
+model rol {
+  pkid_rol   Int       @id(map: "pk_rol") @default(autoincrement())
+  nombre_rol String    @db.VarChar(20)
+  usuario    usuario[]
+}
+
+model servicio {
+  pfkidpublicacion_servicio      Int               @id(map: "pfk_servicio")
+  fkidmodalidadservicio_servicio Int
+  precio_servicio                Int
+  experiencia_servicio           String            @db.VarChar(30)
+  modalidadservicio              modalidadservicio @relation(fields: [fkidmodalidadservicio_servicio], references: [pkid_modalidadservicio], onDelete: NoAction, onUpdate: NoAction, map: "fkservicio_modalidadservicio")
+  publicacion                    publicacion       @relation(fields: [pfkidpublicacion_servicio], references: [pkid_publicacion], onDelete: NoAction, onUpdate: NoAction, map: "fkservicio_publicacion")
+}
+
+model solicitud {
+  pfkidpublicacion_solicitud Int         @id(map: "pfk_solicitud")
+  tipo_solicitud             tipo?
+  publicacion                publicacion @relation(fields: [pfkidpublicacion_solicitud], references: [pkid_publicacion], onDelete: NoAction, onUpdate: NoAction, map: "fksolicitud_publicacion")
+}
+
+model telefono {
+  pkid_telefono        Int     @id(map: "pk_telefono") @default(autoincrement())
+  fkidusuario_telefono Int
+  numero_telefono      String  @db.VarChar(20)
+  usuario              usuario @relation(fields: [fkidusuario_telefono], references: [pkid_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fktelefono_usuario")
+}
+
+model tipoproducto {
+  pkid_tipoproducto          Int       @id(map: "pk_tipoproducto") @default(autoincrement())
+  fkidcategoria_tipoproducto Int
+  nombre_tipoproducto        String    @db.VarChar(50)
+  categoria                  categoria @relation(fields: [fkidcategoria_tipoproducto], references: [pkid_categoria], onDelete: NoAction, onUpdate: NoAction, map: "fktipoproducto_categoria")
+}
+
+model trueque {
+  pfkidpublicacion_trueque Int         @id(map: "pfk_trueque")
+  objetodeseado_trueque    String      @db.VarChar(50)
+  publicacion              publicacion @relation(fields: [pfkidpublicacion_trueque], references: [pkid_publicacion], onDelete: NoAction, onUpdate: NoAction, map: "fktrueque_publicacion")
+}
+
+model usuario {
+  pkid_usuario                                                           Int            @id(map: "pk_usuario") @default(autoincrement())
+  fkidbarrio_usuario                                                     Int
+  fkidgenero_usuario                                                     Int
+  fkidrol_usuario                                                        Int
+  nombres_usuario                                                        String         @db.VarChar(30)
+  apellidos_usuario                                                      String         @db.VarChar(40)
+  fechanacimiento_usuario                                                DateTime?      @db.Date
+  correo_usuario                                                         String         @unique(map: "uqusuario_correo") @db.VarChar(60)
+  contrasena_usuario                                                     String
+  calificacion_calificacion_fkidusuariocalificado_calificacionTousuario  calificacion[] @relation("calificacion_fkidusuariocalificado_calificacionTousuario")
+  calificacion_calificacion_fkidusuariocalificador_calificacionTousuario calificacion[] @relation("calificacion_fkidusuariocalificador_calificacionTousuario")
+  interes                                                                interes[]
+  publicacion                                                            publicacion[]
+  reporte                                                                reporte[]
+  telefono                                                               telefono[]
+  barrio                                                                 barrio         @relation(fields: [fkidbarrio_usuario], references: [pkid_barrio], onDelete: NoAction, onUpdate: NoAction, map: "fkusuario_barrio")
+  genero                                                                 genero         @relation(fields: [fkidgenero_usuario], references: [pkid_genero], onDelete: NoAction, onUpdate: NoAction, map: "fkusuario_genero")
+  rol                                                                    rol            @relation(fields: [fkidrol_usuario], references: [pkid_rol], onDelete: NoAction, onUpdate: NoAction, map: "fkusuario_rol")
+
+  @@index([correo_usuario], map: "idx_correo_usuario")
+}
+
+model visibilidadcontacto {
+  pkid_visibilidadcontacto Int           @id(map: "pk_visibilidadcontacto") @default(autoincrement())
+  tipo_visibilidadcontacto String        @db.VarChar(30)
+  publicacion              publicacion[]
+}
+
+enum tipo {
+  Producto
+  Servicio
+  Trueque
+}

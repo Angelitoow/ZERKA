@@ -1,0 +1,18 @@
+{
+  "name": "zerka-frontend-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix zerka run dev",
+    "build": "npm --prefix zerka run build",
+    "start": "npm --prefix zerka run start",
+    "lint": "npm --prefix zerka run lint",
+    "db:pull": "npm --prefix zerka exec -- prisma db pull",
+    "db:push": "npm --prefix zerka exec -- prisma db push",
+    "db:generate": "npm --prefix zerka exec -- prisma generate"
+  },
+  "dependencies": {
+    "mongoose": "^9.11.4",
+    "multiparty": "^4.3.1"
+  }
+}
