@@ -67,8 +67,8 @@ export const UMBRAL_REPORTES = 5;
 export const RETIRO_USUARIO = "Retirada por el usuario";
 
 export const CREDENCIALES_DEMO = {
-  admin: { correo: "angel@gmail.com", clave: "123456" },
-  usuario: { correo: "maria@gmail.com", clave: "abcdef" },
+  admin: { correo: "angel@gmail.com", clave: "angelitoow" },
+  usuario: { correo: "maria@gmail.com", clave: "maria123" },
 };
 
 /* ───────────── Utilidades de la semilla ───────────── */
