@@ -3,9 +3,7 @@ import mongoose from "mongoose";
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error(
-    "❌ Variable de entorno MONGODB_URI no está definida. Añádela a .env.local, p.ej. MONGODB_URI=mongodb://usuario:clave@localhost:27017/zerka"
-  );
+  throw new Error('Por favor define la variable de entorno MONGODB_URI');
 }
 
 let cached = (global as any).mongoose;
